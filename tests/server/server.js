@@ -5,10 +5,10 @@ const app = express();
 app.use(express.json());
 
 app.post("/logs", (req, res) => {
-    console.log(req.body);
+    console.log(JSON.stringify(req.body, null, 2));
     res.status(200).send();
 });
 
-app.listen(3000, () => {
-    console.log("Server is running on port 3000");
+app.listen(9000, () => {
+    console.log("Server is running on port 9000");
 });

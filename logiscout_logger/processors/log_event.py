@@ -5,14 +5,14 @@ from ..events import LogEvent
 from ..levels import LogLevel
 
 
-# Keys that structlog already uses internally
+# Keys that structlog already uses internally or are internal flags
 _RESERVED_KEYS = {
     "event",
     "level",
     "timestamp",
     "logger",
     "exception",
-    "stack",
+    "_send",  # Internal flag for controlling HTTP transport
 }
 
 

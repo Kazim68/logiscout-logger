@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+env/
+.env
+
+# Testing
+.pytest_cache/
+tests/
+
+# Editor/IDE
+.vscode/
+.idea/
+.claude/
+
+# Distribution
+build/
+dist/
+*.egg-info/
