@@ -2,22 +2,51 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 
 # Virtual Environment
 venv/
 env/
 .env
+.venv/
 
 # Testing
 .pytest_cache/
-tests/
+.coverage
+htmlcov/
+.tox/
+.nox/
 
 # Editor/IDE
 .vscode/
 .idea/
 .claude/
+*.swp
+*.swo
+*~
 
-# Distribution
+# Distribution / Packaging
 build/
 dist/
 *.egg-info/
+*.egg
+.eggs/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+MANIFEST
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Ruff
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db

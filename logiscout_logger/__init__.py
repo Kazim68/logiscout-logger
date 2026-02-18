@@ -11,6 +11,6 @@ __all__ = [
     "wsgiConfiguration",
 ]
 
-__version__ = "0.2.0"
-__description__ = "LogiScout Logger Library with advanced correlation ID middleware support"
-__author__ = "LogiScout Team"
+__version__ = "0.1.0"
+__description__ = "LogiScout Logger Library - Structured logging for ingesting logs into LogiScout"
+__author__ = "Abdur Rehman Kazim"
