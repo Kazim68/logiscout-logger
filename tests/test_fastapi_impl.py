@@ -1,10 +1,14 @@
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
+# import sys
+# import os
+# sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from logiscout_logger import init, get_logger, asgiConfiguration, PROD
 
 # Initialize logiscout
-init(api_token="lgs_dL9DtGGEycvG0bIvppyD0lR36jTiv5NPL4yN3cYqmUY", service_name="fastapi-test-service", env=PROD)
+init(api_token="your_api_key", service_name="fastapi-test-service", env=PROD)
 
 # Get logger
 logger = get_logger("my_fastapi_app")
