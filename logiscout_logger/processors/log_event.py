@@ -56,7 +56,7 @@ def build_log_event(logger, method_name: str, event_dict: Dict[str, Any]):
         timestamp=timestamp,
         level=level,
         message=message,
-        logger_name=logger_name,
+        loggerName=logger_name,
         metadata=metadata,
         exception={"traceback": exception} if exception else None,
     )

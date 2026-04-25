@@ -1,15 +1,40 @@
+<div align="center">
+
 # LogiScout Logger
 
-Python logging library for ingesting logs into [LogiScout](https://github.com/Kazim68/logiscout-logger). Built on top of `structlog` to provide context-rich, structured logs with intelligent batching.
+**Structured logging for Python services, with intelligent batching and zero-config request correlation.**
 
-## Features
+[![PyPI version](https://img.shields.io/pypi/v/logiscout-logger.svg)](https://pypi.org/project/logiscout-logger/)
+[![Python versions](https://img.shields.io/pypi/pyversions/logiscout-logger.svg)](https://pypi.org/project/logiscout-logger/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Downloads](https://img.shields.io/pypi/dm/logiscout-logger.svg)](https://pypi.org/project/logiscout-logger/)
 
-- **Structured Logging**: JSON-formatted logs with timestamps, levels, and metadata
-- **Intelligent Batching**: Automatically batches logs (200 logs or 30 seconds) to reduce network overhead
-- **Correlation ID Tracking**: Automatic request correlation across your application
-- **Environment Support**: DEV (console only) and PROD (console + remote) modes
-- **Confidential Logging**: Mark sensitive logs to prevent them from being sent remotely
-- **Framework Support**: Built-in middleware for FastAPI, Flask, and other ASGI/WSGI frameworks
+[Installation](#installation) ·
+[Quick Start](#quick-start) ·
+[Integrations](#framework-integrations) ·
+[API Reference](#api-reference) ·
+[Batching](#batching)
+
+</div>
+
+---
+
+## Overview
+
+`logiscout-logger` is a Python logging client for the [LogiScout](https://github.com/Kazim68/logiscout-logger) ingest platform. It is built on top of [`structlog`](https://www.structlog.org/) and ships with first-class support for FastAPI, Flask, and Django — including automatic per-request correlation IDs and an intelligent batching layer that minimizes network overhead.
+
+If you're already using `structlog`, the API will feel familiar. If you're not, the learning curve is small: `init()` once at startup, `get_logger(__name__)` everywhere else.
+
+## Highlights
+
+-  **Structured by default** — every log carries a timestamp, level, logger name, and arbitrary metadata as JSON.
+-  **Intelligent batching** — payloads are flushed when **200 logs** accumulate or **30 seconds** elapse, whichever comes first.
+-  **Automatic correlation** — middleware tags every log emitted during a request with the same `correlationId`.
+-  **Framework-ready** — drop-in middleware for ASGI (FastAPI, Starlette, Django ASGI) and WSGI (Flask, Django WSGI).
+-  **DEV / PROD modes** — console-only in development, console + batched remote ingest in production.
+-  **Confidential logs** — flag sensitive entries with `send=False` so they never leave the host.
+-  **Thread-safe** — designed for concurrent web workers and high-throughput services.
+-  **Graceful shutdown** — remaining logs are flushed automatically on process exit.
 
 ## Installation
 
@@ -17,30 +42,40 @@ Python logging library for ingesting logs into [LogiScout](https://github.com/Ka
 pip install logiscout-logger
 ```
 
+**Requirements**
+
+| Dependency | Version |
+| ---------- | ------- |
+| Python     | `>= 3.9` |
+| structlog  | `>= 24.0.0` |
+| requests   | `>= 2.28.0` |
+
 ## Quick Start
 
-### Basic Usage
-
 ```python
-from logiscout_logger import init, get_logger, PROD, DEV
+from logiscout_logger import init, get_logger, PROD
 
-# Initialize the logger
+# 1. Initialize once at app startup
 init(
-    endpoint="https://api.logiscout.com/logs",
+    api_token="your_api_key",
     service_name="my-service",
-    env=PROD  # Use DEV for local development (no remote sending)
+    env=PROD,
 )
 
-# Get a logger instance
+# 2. Get a logger anywhere in your codebase
 logger = get_logger(__name__)
 
-# Log messages
+# 3. Log structured events
 logger.info("User logged in", user_id=123)
 logger.warning("Rate limit approaching", current=95, limit=100)
 logger.error("Payment failed", order_id="abc-123", reason="insufficient_funds")
 ```
 
-### FastAPI Integration
+In `DEV` mode the same code prints to the console only — no network calls, no token required.
+
+## Framework Integrations
+
+### FastAPI
 
 ```python
 from fastapi import FastAPI
@@ -48,14 +83,7 @@ from logiscout_logger import init, get_logger, asgiConfiguration, PROD
 
 app = FastAPI()
 
-# Initialize LogiScout
-init(
-    endpoint="https://api.logiscout.com/logs",
-    service_name="my-fastapi-app",
-    env=PROD
-)
-
-# Add middleware for automatic correlation ID tracking
+init(api_token="your_api_key", service_name="my-fastapi-app", env=PROD)
 app.add_middleware(asgiConfiguration)
 
 logger = get_logger("api")
@@ -63,11 +91,10 @@ logger = get_logger("api")
 @app.get("/users/{user_id}")
 async def get_user(user_id: int):
     logger.info("Fetching user", user_id=user_id)
-    # Your logic here
     return {"user_id": user_id}
 ```
 
-### Flask Integration
+### Flask
 
 ```python
 from flask import Flask
@@ -75,14 +102,7 @@ from logiscout_logger import init, get_logger, wsgiConfiguration, PROD
 
 app = Flask(__name__)
 
-# Initialize LogiScout
-init(
-    endpoint="https://api.logiscout.com/logs",
-    service_name="my-flask-app",
-    env=PROD
-)
-
-# Apply WSGI middleware
+init(api_token="your_api_key", service_name="my-flask-app", env=PROD)
 app.wsgi_app = wsgiConfiguration(app.wsgi_app)
 
 logger = get_logger("api")
@@ -93,18 +113,14 @@ def get_user(user_id):
     return {"user_id": user_id}
 ```
 
-### Django Integration
+### Django
 
 **1. Initialize in `settings.py`:**
 
 ```python
-from logiscout_logger import init, PROD, DEV
+from logiscout_logger import init, PROD
 
-init(
-    endpoint="https://api.logiscout.com/logs",
-    service_name="my-django-app",
-    env=PROD  # Use DEV for local development
-)
+init(api_token="your_api_key", service_name="my-django-app", env=PROD)
 ```
 
 **2. Apply middleware in `wsgi.py`:**
@@ -114,20 +130,20 @@ import os
 from django.core.wsgi import get_wsgi_application
 from logiscout_logger import wsgiConfiguration
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "myproject.settings")
 
 application = get_wsgi_application()
 application = wsgiConfiguration(application)
 ```
 
-If running Django with an ASGI server (e.g., Uvicorn), apply the middleware in `asgi.py` instead:
+For ASGI deployments (e.g. Uvicorn, Daphne), apply `asgiConfiguration` in `asgi.py` instead:
 
 ```python
 import os
 from django.core.asgi import get_asgi_application
 from logiscout_logger import asgiConfiguration
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "myproject.settings")
 
 application = get_asgi_application()
 application = asgiConfiguration(application)
@@ -147,53 +163,24 @@ def my_view(request):
 
 ## Environment Modes
 
-### Development Mode (DEV)
-
-In DEV mode, logs are only printed to the console. No logs are sent to the remote endpoint.
-
-```python
-from logiscout_logger import init, DEV
-
-init(
-    endpoint="https://api.logiscout.com/logs",
-    service_name="my-service",
-    env=DEV  # Logs only go to console
-)
-```
-
-### Production Mode (PROD)
-
-In PROD mode, logs are printed to the console AND sent to the remote endpoint with intelligent batching.
+| Mode  | Console output | Remote ingest | Batching | Notes |
+| ----- | :------------: | :-----------: | :------: | ----- |
+| `DEV` |       ✔        |       ✘       |    ✘     | Ideal for local development. No `api_token` required. |
+| `PROD`|       ✔        |       ✔       |    ✔     | Logs are batched and shipped to the LogiScout endpoint. |
 
 ```python
-from logiscout_logger import init, PROD
+from logiscout_logger import init, DEV, PROD
 
-init(
-    endpoint="https://api.logiscout.com/logs",
-    service_name="my-service",
-    env=PROD  # Logs go to console AND remote
-)
+# Development — console only
+init(api_token="...", service_name="my-service", env=DEV)
+
+# Production — console + remote with batching
+init(api_token="...", service_name="my-service", env=PROD)
 ```
 
-## Confidential Logging
+## Logging API
 
-For sensitive data that should not be sent to the remote server, use the `send=False` parameter:
-
-```python
-logger = get_logger(__name__)
-
-# This log will be sent to the remote server
-logger.info("User authenticated", user_id=123)
-
-# This log will ONLY appear in the console (not sent remotely)
-logger.info("Password reset token generated", token="secret-token", send=False)
-
-# Works with all log levels
-logger.debug("Sensitive debug info", data=sensitive_data, send=False)
-logger.error("Internal error details", stack_trace=trace, send=False)
-```
-
-## Log Levels
+### Levels
 
 ```python
 logger.debug("Detailed debug information")
@@ -203,64 +190,88 @@ logger.error("Error message")
 logger.critical("Critical error message")
 ```
 
-## Adding Metadata
+### Adding Metadata
 
-Add any additional context to your logs:
+Pass arbitrary keyword arguments — they are serialized into the structured log entry:
 
 ```python
-# Inline metadata
 logger.info("Order created", order_id="123", total=99.99, currency="USD")
-
-# Bound logger with persistent context
-user_logger = logger.bind(user_id=123, session_id="abc")
-user_logger.info("User action", action="click")  # Includes user_id and session_id
 ```
+
+### Bound Loggers
+
+Bind context once and reuse it across calls:
+
+```python
+user_logger = logger.bind(user_id=123, session_id="abc")
+user_logger.info("User action", action="click")  # includes user_id and session_id
+```
+
+### Confidential Logging
+
+Use `send=False` to keep a log local to the host (still printed to the console, never transmitted):
+
+```python
+logger.info("Password reset token generated", token="secret-token", send=False)
+logger.error("Internal error details", stack_trace=trace, send=False)
+```
+
+This works on every level (`debug`, `info`, `warning`, `error`, `critical`).
 
 ## Standalone Usage
 
-You can use logiscout-logger without connecting to a remote service. Logs will only go to the console:
+The library can be used as a plain console logger without calling `init()`:
 
 ```python
 from logiscout_logger import get_logger
 
-# No init() call needed for console-only logging
 logger = get_logger("my_script")
-
 logger.info("Script started")
-logger.debug("Processing data", count=100)
 logger.warning("Disk space low", available_gb=1.5)
 ```
 
+Nothing is sent to the network in this mode.
+
+## Batching
+
+In `PROD`, request payloads are queued and flushed by the `BatchManager`:
+
+- **Log-count trigger** — flushes when total queued logs reach **200**.
+- **Time trigger** — flushes every **30 seconds** as long as the queue is non-empty.
+- **Partial payloads** — large requests are split across batches and re-stitched on the backend by `correlationId`.
+- **Graceful shutdown** — `atexit` flushes any remaining logs on a clean process exit.
+
+For the full design, batch wire format, and tuning knobs, see [`BATCHING_SYSTEM.md`](BATCHING_SYSTEM.md).
+
 ## API Reference
 
-### `init()`
+### `init(api_token, service_name, env)`
 
-Initialize the LogiScout logger.
+Initialize the LogiScout logger. Call once at app startup.
+
+| Parameter      | Type          | Description |
+| -------------- | ------------- | ----------- |
+| `api_token`    | `str`         | API token for authenticating with the LogiScout ingest endpoint. |
+| `service_name` | `str`         | Service identifier — applied to every log produced in this process. |
+| `env`          | `Environment` | `DEV` (console only) or `PROD` (console + batched remote ingest). |
+
+### `get_logger(name)`
+
+Return a logger instance.
 
 ```python
-init(
-    endpoint: str,        # Remote logging endpoint URL
-    service_name: str,    # Service identifier
-    env: Environment      # DEV or PROD
-)
+logger = get_logger(__name__)
 ```
 
-### `get_logger()`
-
-Get a logger instance.
+### `LogiScoutLogger`
 
 ```python
-logger = get_logger(name: str)  # Usually __name__
-```
-
-### Logger Methods
-
-```python
-logger.debug(msg: str, send: bool = True, **kwargs)
-logger.info(msg: str, send: bool = True, **kwargs)
-logger.warning(msg: str, send: bool = True, **kwargs)
-logger.error(msg: str, send: bool = True, **kwargs)
-logger.critical(msg: str, send: bool = True, **kwargs)
+logger.debug(msg: str, send: bool = True, **metadata)
+logger.info(msg: str, send: bool = True, **metadata)
+logger.warning(msg: str, send: bool = True, **metadata)
+logger.error(msg: str, send: bool = True, **metadata)
+logger.critical(msg: str, send: bool = True, **metadata)
+logger.bind(**context) -> LogiScoutLogger
 ```
 
 ### Middleware
@@ -268,23 +279,42 @@ logger.critical(msg: str, send: bool = True, **kwargs)
 ```python
 from logiscout_logger import asgiConfiguration, wsgiConfiguration
 
-# For ASGI (FastAPI, Starlette, Django with ASGI)
+# ASGI — FastAPI, Starlette, Django (ASGI)
 app.add_middleware(asgiConfiguration)
 
-# For WSGI (Flask, Django with WSGI)
+# WSGI — Flask, Django (WSGI)
 app.wsgi_app = wsgiConfiguration(app.wsgi_app)
 ```
 
-## Requirements
+## How It Works
 
-- Python 3.9+
-- structlog >= 24.0.0
-- requests >= 2.28.0
+```
+┌────────────────────┐    ┌─────────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│  Application code  │ →  │   structlog chain   │ →  │   BatchManager   │ →  │   HTTPTransport  │
+│  logger.info(...)  │    │ build_log_event,    │    │  200 logs / 30s  │    │   POST /ingest   │
+│                    │    │ push_to_buffer, …   │    │  thread-safe     │    │   Bearer auth    │
+└────────────────────┘    └─────────────────────┘    └──────────────────┘    └──────────────────┘
+            │                                                                           ▲
+            │                                                                           │
+            └──────── ASGI / WSGI middleware adds correlationId ────────────────────────┘
+```
+
+## Contributing
+
+Issues and pull requests are welcome. Please open an issue first for non-trivial changes so we can align on direction.
+
+1. Fork the repository.
+2. Create a feature branch.
+3. Run the test suite (`pytest`).
+4. Submit a pull request describing the change and its motivation.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+[MIT](LICENSE) © Abdur Rehman Kazim
 
-## Support
+## Links
 
-- Issues: https://github.com/Kazim68/logiscout-logger/issues
+- **PyPI**: https://pypi.org/project/logiscout-logger/
+- **Source**: https://github.com/Kazim68/logiscout-logger
+- **Issues**: https://github.com/Kazim68/logiscout-logger/issues
+- **Batching design**: [`BATCHING_SYSTEM.md`](BATCHING_SYSTEM.md)

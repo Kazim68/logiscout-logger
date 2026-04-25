@@ -34,8 +34,11 @@ PROD = Environment.PROD
 # Global configuration
 # ------------------------
 
+# Hardcoded remote logging endpoint
+_ENDPOINT_URL = "http://localhost:3000/ingest"#"http://47.130.208.43:3000/ingest"
+
 _config = {
-    "endpoint": None,
+    "api_token": None,
     "service_name": None,
     "environment": None,
 }
@@ -53,7 +56,7 @@ _batch_manager = None  # New intelligent batch manager
 
 def init(
     *,
-    endpoint: str,
+    api_token: str,
     service_name: str,
     env: Environment,
 ):
@@ -62,7 +65,7 @@ def init(
     Must be called once at app startup.
 
     Args:
-        endpoint: The remote logging endpoint URL
+        api_token: The API token used to authenticate with the LogiScout endpoint
         service_name: Global service identifier (same for entire application)
         env: Environment (DEV or PROD)
     """
@@ -72,13 +75,13 @@ def init(
         if _configured:
             return
 
-        _config["endpoint"] = endpoint
+        _config["api_token"] = api_token
         _config["service_name"] = service_name
         _config["environment"] = env.value if isinstance(env, Environment) else env
 
-        # Initialize transport only if endpoint is configured AND environment is PROD
-        if endpoint and (env == Environment.PROD or env == "production"):
-            _transport = HTTPTransport(endpoint)
+        # Initialize transport only if an api_token is configured AND environment is PROD
+        if api_token and (env == Environment.PROD or env == "production"):
+            _transport = HTTPTransport(_ENDPOINT_URL, api_token)
             # Create batch manager with intelligent batching (200 logs or 30 seconds)
             _batch_manager = BatchManager(_transport, max_logs=200, max_wait_seconds=30.0)
             # Also keep legacy processor for backward compatibility

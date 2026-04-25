@@ -9,7 +9,7 @@ class LogEvent:
     level: str
     message: str
 
-    logger_name: str
+    loggerName: str
 
     metadata: Dict[str, Any] = field(default_factory=dict)
     exception: Optional[Dict[str, Any]] = None

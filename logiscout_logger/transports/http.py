@@ -11,8 +11,15 @@ class HTTPTransport(Transport):
     HTTP transport that sends LogEvent or RequestLogPayload to a remote server via POST request.
     """
 
-    def __init__(self, endpoint_url: str):
+    def __init__(self, endpoint_url: str, api_token: str | None = None):
         self._endpoint_url = endpoint_url
+        self._api_token = api_token
+
+    def _headers(self) -> dict:
+        headers = {"Content-Type": "application/json"}
+        if self._api_token:
+            headers["Authorization"] = f"Bearer {self._api_token}"
+        return headers
 
     def send(self, event: LogEvent) -> None:
         """
@@ -33,7 +40,7 @@ class HTTPTransport(Transport):
             response = requests.post(
                 self._endpoint_url,
                 json=payload,
-                headers={"Content-Type": "application/json"},
+                headers=self._headers(),
                 timeout=5
             )
             response.raise_for_status()
@@ -56,7 +63,7 @@ class HTTPTransport(Transport):
             response = requests.post(
                 self._endpoint_url,
                 json=payload_dict,
-                headers={"Content-Type": "application/json"},
+                headers=self._headers(),
                 timeout=5
             )
             response.raise_for_status()
@@ -82,7 +89,7 @@ class HTTPTransport(Transport):
             response = requests.post(
                 self._endpoint_url,
                 json=batch,
-                headers={"Content-Type": "application/json"},
+                headers=self._headers(),
                 timeout=10
             )
             response.raise_for_status()

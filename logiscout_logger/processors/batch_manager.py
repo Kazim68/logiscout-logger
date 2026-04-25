@@ -124,12 +124,12 @@ class BatchManager:
         # Send the batch if we have payloads
         if complete_payloads:
             batch_to_send = {
-                "payloads": complete_payloads,
-                "batch_metadata": {
-                    "total_requests": len(complete_payloads),
-                    "total_logs": total_logs_in_batch,
-                    "flushed_at": datetime.utcnow().isoformat() + "Z"
-                }
+                "payloads": complete_payloads
+                # "batch_metadata": {
+                #     "total_requests": len(complete_payloads),
+                #     "total_logs": total_logs_in_batch,
+                #     "flushed_at": datetime.utcnow().isoformat() + "Z"
+                #}
             }
 
             self._send_batch(batch_to_send)
